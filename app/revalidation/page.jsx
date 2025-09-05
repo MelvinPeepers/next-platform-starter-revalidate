@@ -11,6 +11,29 @@ const randomWikiUrl = 'https://en.wikipedia.org/api/rest_v1/page/random/summary'
 const maxExtractLength = 200;
 const revalidateTTL = 60;
 
+// Helper that won't crash the build if Wikipedia is slow/unreachable.
+async function fetchRandomWiki() {
+  try {
+    const res = await fetch(randomWikiUrl, {
+      next: { revalidate: revalidateTTL, tags: [tagName] },
+      // Hard timeout so build won't hang on network
+      signal: AbortSignal.timeout(4000),
+      // Wikipedia recommends a descriptive UA
+      headers: { 'User-Agent': 'Netlify-ISR-Demo/1.0 (+https://revalidate.netlify.app/)' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    // Safe fallback to keep the build green
+    return {
+      title: 'Random article unavailable',
+      description: 'Wikipedia endpoint timed out during build.',
+      extract: 'We will try again on the next request or after background revalidation.',
+      content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Special:Random' } },
+    };
+  }
+}
+
 const explainer = `
 This page perfoms a \`fetch\` on the server to get a random article from Wikipedia. 
 The fetched data is then cached with a tag named "${tagName}" and a maximum age of ${revalidateTTL} seconds.
@@ -60,6 +83,7 @@ async function RandomWikiArticle() {
     });
 
     const content = await randomWiki.json();
+    const content = await fetchRandomWiki();
     let extract = content.extract;
     if (extract.length > maxExtractLength) {
         extract = extract.slice(0, extract.slice(0, maxExtractLength).lastIndexOf(' ')) + ' [...]';
