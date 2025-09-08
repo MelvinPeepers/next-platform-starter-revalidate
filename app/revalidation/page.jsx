@@ -2,6 +2,8 @@ import { revalidateTag } from 'next/cache';
 import { SubmitButton } from '../../components/submit-button';
 import { Markdown } from '../../components/markdown';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
     title: 'On-Demand Revalidation'
 };
