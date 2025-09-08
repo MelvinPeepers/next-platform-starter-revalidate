@@ -82,7 +82,7 @@ async function RandomWikiArticle() {
         next: { revalidate: revalidateTTL, tags: [tagName] }
     });
 
-    const content = await randomWiki.json();
+    // const content = await randomWiki.json();
     const content = await fetchRandomWiki();
     let extract = content.extract;
     if (extract.length > maxExtractLength) {
